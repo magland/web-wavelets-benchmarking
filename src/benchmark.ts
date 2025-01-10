@@ -135,7 +135,7 @@ import time
 import json
 
 # Convert the transferred array to numpy array
-data = np.array(input_data)
+data = np.array(input_data.to_py())
 
 target_duration = ${targetDurationMs / 1000}  # Convert to seconds
 
@@ -335,12 +335,13 @@ const pywaveletsRoundTripDec = async (
 import numpy as np
 import pywt
 
-data = np.array(input_data)
+data = np.array(input_data.to_py())
 
 coeffs = pywt.wavedec(data, '${wavelet}')
 coeffs
         `);
   const coeffs = pyodideResult.toJs();
+  pyodideResult.destroy();
   return coeffs;
 };
 
@@ -356,13 +357,14 @@ import numpy as np
 import pywt
 import pyodide
 
-coeffs = input_coeffs.to_py()
-coeffs = [np.array(c) for c in coeffs]
+coeffs = [np.array(c) for c in input_coeffs.to_py()]
 
 x = pywt.waverec(coeffs, '${wavelet}')
 x
         `);
-  return pyodideResult;
+  const reconstruct = pyodideResult.toJs();
+  pyodideResult.destroy();
+  return reconstruct;
 };
 
 const arraysAreClose = (a: Float64Array, b: Float64Array) => {
