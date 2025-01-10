@@ -5,6 +5,9 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   benchmark:
     runs-on: ubuntu-latest
@@ -38,7 +41,9 @@ jobs:
         git pull origin benchmark-results || true
 
     - name: Commit benchmark results
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         git add benchmark-results/
         git commit -m "Add benchmark results [skip ci]" || echo "No changes to commit"
-        git push origin benchmark-results
+        git push https://${GITHUB_TOKEN}@github.com/${{ github.repository }} benchmark-results
