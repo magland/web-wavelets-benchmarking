@@ -42,7 +42,13 @@ async function runBenchmarks() {
         waverec: number;
       };
     };
-    pyodide: {
+    pywavelets: {
+      timings: {
+        wavedec: number;
+        waverec: number;
+      };
+    };
+    pywaveletsWithMarshalling: {
       timings: {
         wavedec: number;
         waverec: number;
@@ -87,11 +93,11 @@ async function runBenchmarks() {
         data[i] = Math.sin(i / 10) + Math.random() * 0.1;
       }
 
+      //////////////////////////////////////////////////////////////////////////
+      // Wasmlets benchmark
       console.info(
         `Running wasmlets benchmarks for size ${size} and wavelet ${wavelet}`
       );
-      //////////////////////////////////////////////////////////////////////////
-      // Wavedec benchmark
       const startDec = performance.now();
       let numDecTrials = 0;
       let coeffs: any;
@@ -101,27 +107,29 @@ async function runBenchmarks() {
       }
       const endDec = performance.now();
       const wasmletsDecAvg = (endDec - startDec) / numDecTrials;
+      console.info(`wavedec: ${wasmletsDecAvg}ms (${numDecTrials} trials)`);
 
       const startRec = performance.now();
       let numRecTrials = 0;
-      let x;
+      let x: any;
       while (performance.now() - startRec < targetDurationMs) {
         x = waverec(coeffs, wavelet, data.length);
         numRecTrials++;
       }
       const endRec = performance.now();
       const wasmletsRecAvg = (endRec - startRec) / numRecTrials;
-      console.info(
-        `wavedec avg time: ${wasmletsDecAvg}ms (${numDecTrials} trials)`
-      );
+      console.info(`wavedec: ${wasmletsDecAvg}ms (${numDecTrials} trials)`);
+      console.info("");
+      if (!arraysAreClose(data, x)) {
+        throw new Error("Round trip failed");
+      }
 
       //////////////////////////////////////////////////////////////////////////
-      // Pyodide benchmarks
+      // Pywavelets benchmarks
       console.info(
-        `Running Pyodide benchmarks for size ${size} and wavelet ${wavelet}`
+        `Running pywavelets benchmarks for size ${size} and wavelet ${wavelet}`
       );
 
-      // Transfer the data array directly to Python
       pyodide.globals.set("input_data", data);
 
       const pyodideResult = await pyodide.runPythonAsync(`
@@ -131,7 +139,8 @@ import time
 import json
 
 # Convert the transferred array to numpy array
-data = np.array(input_data)
+data = np.array(input_data.to_py())
+
 target_duration = ${targetDurationMs / 1000}  # Convert to seconds
 
 # Wavedec benchmark
@@ -155,24 +164,66 @@ waverec_time_elapsed = (end - start) * 1000
 waverec_avg_time = waverec_time_elapsed / num_rec_trials
 
 json.dumps({
-    'pyodideDecAvg': wavedec_avg_time,
-    'pyodideRecAvg': waverec_avg_time,
+    'pywaveletsDecAvg': wavedec_avg_time,
+    'pywaveletsRecAvg': waverec_avg_time,
     'numDecTrials': num_dec_trials,
     'numRecTrials': num_rec_trials
 })
         `);
       const {
-        pyodideDecAvg,
-        pyodideRecAvg,
+        pywaveletsDecAvg,
+        pywaveletsRecAvg,
         numDecTrials: pyNumDecTrials,
         numRecTrials: pyNumRecTrials,
       } = JSON.parse(pyodideResult);
       console.info(
-        `wavedec avg time: ${pyodideDecAvg}ms (${pyNumDecTrials} trials)`
+        `wavedec: ${pywaveletsDecAvg}ms (${pyNumDecTrials} trials)`
       );
       console.info(
-        `waverec avg time: ${pyodideRecAvg}ms (${pyNumRecTrials} trials)`
+        `waverec: ${pywaveletsRecAvg}ms (${pyNumRecTrials} trials)`
       );
+      console.info("");
+
+      //////////////////////////////////////////////////////////////////////////
+      // Pywavelets-with-marshalling benchmarks
+      console.info(
+        `Running pywavelets-with-marshalling benchmarks for size ${size} and wavelet ${wavelet}`
+      );
+      const startPywaveletsWithMarshallingDec = performance.now();
+      let numPywaveletsWithMarshallingDecTrials = 0;
+      let pywaveletsWithMarshallingCoeffs: any;
+      while (performance.now() - startPywaveletsWithMarshallingDec < targetDurationMs) {
+        pywaveletsWithMarshallingCoeffs = await pywaveletsRoundTripDec(pyodide, data, wavelet);
+        numPywaveletsWithMarshallingDecTrials++;
+      }
+      const endPywaveletsWithMarshallingDec = performance.now();
+      const pywaveletsWithMarshallingDecAvg =
+        (endPywaveletsWithMarshallingDec - startPywaveletsWithMarshallingDec) / numPywaveletsWithMarshallingDecTrials;
+      console.info(
+        `wavedec: ${pywaveletsWithMarshallingDecAvg}ms (${numPywaveletsWithMarshallingDecTrials} trials)`
+      );
+
+      const startPywaveletsWithMarshallingRec = performance.now();
+      let numPywaveletsWithMarshallingRecTrials = 0;
+      let pywaveletsWithMarshallingX: any;
+      while (performance.now() - startPywaveletsWithMarshallingRec < targetDurationMs) {
+        pywaveletsWithMarshallingX = await pywaveletsRoundTripRec(
+          pyodide,
+          pywaveletsWithMarshallingCoeffs,
+          wavelet
+        );
+        numPywaveletsWithMarshallingRecTrials++;
+      }
+      const endPywaveletsWithMarshallingRec = performance.now();
+      const pywaveletsWithMarshallingRecAvg =
+        (endPywaveletsWithMarshallingRec - startPywaveletsWithMarshallingRec) / numPywaveletsWithMarshallingRecTrials;
+      console.info(
+        `waverec: ${pywaveletsWithMarshallingRecAvg}ms (${numPywaveletsWithMarshallingRecTrials} trials)`
+      );
+      console.info("");
+      if (!arraysAreClose(pywaveletsWithMarshallingX, x)) {
+        throw new Error("Round trip failed");
+      }
 
       //////////////////////////////////////////////////////////////////////////
       // Discrete Wavelets benchmarks
@@ -197,6 +248,9 @@ json.dumps({
       const endDiscreteDec = performance.now();
       const discreteDecAvg =
         (endDiscreteDec - startDiscreteDec) / numDiscreteDecTrials;
+      console.info(
+        `wavedec: ${discreteDecAvg}ms (${numDiscreteDecTrials} trials)`
+      );
 
       // For some reason, discrete-wavelets waverec seems to hang
       // so disabling it
@@ -210,10 +264,13 @@ json.dumps({
         }
         const endDiscreteRec = performance.now();
         const discreteRecAvg = (endDiscreteRec - startDiscreteRec) / numDiscreteRecTrials;
-        console.info(`wavedec avg time: ${discreteDecAvg}ms (${numDiscreteDecTrials} trials)`);
-        console.info(`waverec avg time: ${discreteRecAvg}ms (${numDiscreteRecTrials} trials)`);
         */
+      const numDiscreteRecTrials = 0;
       const discreteRecAvg = undefined;
+      console.info(
+        `waverec: ${discreteRecAvg} ms (${numDiscreteRecTrials} trials)`
+      );
+      console.info("");
 
       const wasmletResult: BenchmarkResult = {
         size,
@@ -224,10 +281,16 @@ json.dumps({
             waverec: wasmletsRecAvg,
           },
         },
-        pyodide: {
+        pywavelets: {
           timings: {
-            wavedec: pyodideDecAvg,
-            waverec: pyodideRecAvg,
+            wavedec: pywaveletsDecAvg,
+            waverec: pywaveletsRecAvg,
+          },
+        },
+        pywaveletsWithMarshalling: {
+          timings: {
+            wavedec: pywaveletsWithMarshallingDecAvg,
+            waverec: pywaveletsWithMarshallingRecAvg,
           },
         },
         discreteWavelets: {
@@ -264,6 +327,63 @@ json.dumps({
     console.log(`Archived copy saved to ${archivePath}`);
   }
 }
+
+const pywaveletsRoundTripDec = async (
+  pyodide: any,
+  data: Float64Array,
+  wavelet: Wavelet
+) => {
+  pyodide.globals.set("input_data", data);
+
+  const pyodideResult = await pyodide.runPythonAsync(`
+import numpy as np
+import pywt
+
+data = np.array(input_data.to_py())
+
+coeffs = pywt.wavedec(data, '${wavelet}')
+coeffs
+        `);
+  const coeffs = pyodideResult.toJs();
+  pyodideResult.destroy();
+  return coeffs;
+};
+
+const pywaveletsRoundTripRec = async (
+  pyodide: any,
+  coeffs: any,
+  wavelet: Wavelet
+) => {
+  pyodide.globals.set("input_coeffs", coeffs);
+
+  const pyodideResult = await pyodide.runPythonAsync(`
+import numpy as np
+import pywt
+import pyodide
+
+coeffs = [np.array(c) for c in input_coeffs.to_py()]
+
+x = pywt.waverec(coeffs, '${wavelet}')
+x
+        `);
+  const reconstruct = pyodideResult.toJs();
+  pyodideResult.destroy();
+  return reconstruct;
+};
+
+const arraysAreClose = (a: Float64Array, b: Float64Array) => {
+  if (a.length !== b.length) {
+    return false;
+  }
+
+  for (let i = 0; i < a.length; i++) {
+    if (Math.abs(a[i] - b[i]) > 1e-6) {
+      return false;
+    }
+  }
+
+  return true;
+};
 
 // Run benchmarks
 runBenchmarks().catch(console.error);
