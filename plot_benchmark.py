@@ -27,6 +27,7 @@ r2 = [x + bar_width for x in r1]
 r3 = [x + bar_width for x in r2]
 r4 = [x + bar_width for x in r3]
 r5 = [x + bar_width for x in r4]
+r6 = [x + bar_width for x in r5]
 
 # Plot for each size
 for size_idx, size in enumerate(sizes):
@@ -53,8 +54,8 @@ for size_idx, size in enumerate(sizes):
     ax.bar(r2, wasmlets_rec, width=bar_width, label='Wasmlets Reconstruction', color='lightblue')
     ax.bar(r3, pywavelets_wp_dec, width=bar_width, label='Pywavelets WP Decomposition', color='coral')
     ax.bar(r4, pywavelets_wp_rec, width=bar_width, label='Pywavelets WP Reconstruction', color='salmon')
-    ax.bar(r3, pywavelets_dec, width=bar_width, label='Pywavelets Decomposition', color='orange')
-    ax.bar(r4, pywavelets_rec, width=bar_width, label='Pywavelets Reconstruction', color='wheat')
+    ax.bar(r5, pywavelets_dec, width=bar_width, label='Pywavelets Decomposition', color='orange')
+    ax.bar(r6, pywavelets_rec, width=bar_width, label='Pywavelets Reconstruction', color='wheat')
     if include_discrete_wavelets:
         ax.bar(r5, discrete_dec, width=bar_width, label='Discrete-Wavelets Decomposition', color='lightgreen')
         # Only plot reconstruction bars for discrete-wavelets if they're not all NaN
