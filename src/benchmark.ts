@@ -15,9 +15,14 @@ async function runBenchmarks() {
 
     console.log('Initializing Pyodide...');
     const prePyodide = performance.now();
-    const pyodide = await loadPyodide({packages: ['numpy', 'pywavelets']});
+    const pyodide = await loadPyodide();
     const postPyodide = performance.now();
+    await pyodide.loadPackage(['numpy', 'pywavelets']);
+    const postPyodidePackage = performance.now();
     console.log(`Pyodide initialized in ${postPyodide - prePyodide}ms`);
+    console.log(
+      `Pyodide packages loaded in ${postPyodidePackage - postPyodide}ms`
+    );
 
     // Benchmark parameters
     const sizes = [1e5, 1e6];
