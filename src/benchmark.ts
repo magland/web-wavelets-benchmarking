@@ -42,13 +42,13 @@ async function runBenchmarks() {
         waverec: number;
       };
     };
-    pywaveletsWithinPython: {
+    pywavelets: {
       timings: {
         wavedec: number;
         waverec: number;
       };
     };
-    pywavelets: {
+    pywaveletsWithMarshalling: {
       timings: {
         wavedec: number;
         waverec: number;
@@ -121,9 +121,9 @@ async function runBenchmarks() {
       }
 
       //////////////////////////////////////////////////////////////////////////
-      // Pywavelets-within-python benchmarks
+      // Pywavelets benchmarks
       console.info(
-        `Running pywavelets-within-python benchmarks for size ${size} and wavelet ${wavelet}`
+        `Running pywavelets benchmarks for size ${size} and wavelet ${wavelet}`
       );
 
       pyodide.globals.set("input_data", data);
@@ -160,64 +160,64 @@ waverec_time_elapsed = (end - start) * 1000
 waverec_avg_time = waverec_time_elapsed / num_rec_trials
 
 json.dumps({
-    'pywaveletsWithinPythonDecAvg': wavedec_avg_time,
-    'pywaveletsWithinPythonRecAvg': waverec_avg_time,
+    'pywaveletsDecAvg': wavedec_avg_time,
+    'pywaveletsRecAvg': waverec_avg_time,
     'numDecTrials': num_dec_trials,
     'numRecTrials': num_rec_trials
 })
         `);
       const {
-        pywaveletsWithinPythonDecAvg,
-        pywaveletsWithinPythonRecAvg,
+        pywaveletsDecAvg,
+        pywaveletsRecAvg,
         numDecTrials: pyNumDecTrials,
         numRecTrials: pyNumRecTrials,
       } = JSON.parse(pyodideResult);
       console.info(
-        `wavedec: ${pywaveletsWithinPythonDecAvg}ms (${pyNumDecTrials} trials)`
+        `wavedec: ${pywaveletsDecAvg}ms (${pyNumDecTrials} trials)`
       );
       console.info(
-        `waverec: ${pywaveletsWithinPythonRecAvg}ms (${pyNumRecTrials} trials)`
+        `waverec: ${pywaveletsRecAvg}ms (${pyNumRecTrials} trials)`
       );
       console.info("");
 
       //////////////////////////////////////////////////////////////////////////
-      // Pywavelets benchmarks
+      // Pywavelets-with-marshalling benchmarks
       console.info(
-        `Running pywavelets benchmarks for size ${size} and wavelet ${wavelet}`
+        `Running pywavelets-with-marshalling benchmarks for size ${size} and wavelet ${wavelet}`
       );
-      const startPywaveletsDec = performance.now();
-      let numPywaveletsDecTrials = 0;
-      let pywaveletsCoeffs: any;
-      while (performance.now() - startPywaveletsDec < targetDurationMs) {
-        pywaveletsCoeffs = await pywaveletsRoundTripDec(pyodide, data, wavelet);
-        numPywaveletsDecTrials++;
+      const startPywaveletsWithMarshallingDec = performance.now();
+      let numPywaveletsWithMarshallingDecTrials = 0;
+      let pywaveletsWithMarshallingCoeffs: any;
+      while (performance.now() - startPywaveletsWithMarshallingDec < targetDurationMs) {
+        pywaveletsWithMarshallingCoeffs = await pywaveletsRoundTripDec(pyodide, data, wavelet);
+        numPywaveletsWithMarshallingDecTrials++;
       }
-      const endPywaveletsDec = performance.now();
-      const pywaveletsDecAvg =
-        (endPywaveletsDec - startPywaveletsDec) / numPywaveletsDecTrials;
+      const endPywaveletsWithMarshallingDec = performance.now();
+      const pywaveletsWithMarshallingDecAvg =
+        (endPywaveletsWithMarshallingDec - startPywaveletsWithMarshallingDec) / numPywaveletsWithMarshallingDecTrials;
       console.info(
-        `wavedec: ${pywaveletsDecAvg}ms (${numPywaveletsDecTrials} trials)`
+        `wavedec: ${pywaveletsWithMarshallingDecAvg}ms (${numPywaveletsWithMarshallingDecTrials} trials)`
       );
 
-      const startPywaveletsRec = performance.now();
-      let numPywaveletsRecTrials = 0;
-      let pywaveletsX: any;
-      while (performance.now() - startPywaveletsRec < targetDurationMs) {
-        pywaveletsX = await pywaveletsRoundTripRec(
+      const startPywaveletsWithMarshallingRec = performance.now();
+      let numPywaveletsWithMarshallingRecTrials = 0;
+      let pywaveletsWithMarshallingX: any;
+      while (performance.now() - startPywaveletsWithMarshallingRec < targetDurationMs) {
+        pywaveletsWithMarshallingX = await pywaveletsRoundTripRec(
           pyodide,
-          pywaveletsCoeffs,
+          pywaveletsWithMarshallingCoeffs,
           wavelet
         );
-        numPywaveletsRecTrials++;
+        numPywaveletsWithMarshallingRecTrials++;
       }
-      const endPywaveletsRec = performance.now();
-      const pywaveletsRecAvg =
-        (endPywaveletsRec - startPywaveletsRec) / numPywaveletsRecTrials;
+      const endPywaveletsWithMarshallingRec = performance.now();
+      const pywaveletsWithMarshallingRecAvg =
+        (endPywaveletsWithMarshallingRec - startPywaveletsWithMarshallingRec) / numPywaveletsWithMarshallingRecTrials;
       console.info(
-        `waverec: ${pywaveletsRecAvg}ms (${numPywaveletsRecTrials} trials)`
+        `waverec: ${pywaveletsWithMarshallingRecAvg}ms (${numPywaveletsWithMarshallingRecTrials} trials)`
       );
       console.info("");
-      if (!arraysAreClose(pywaveletsX, x)) {
+      if (!arraysAreClose(pywaveletsWithMarshallingX, x)) {
         throw new Error("Round trip failed");
       }
 
@@ -277,16 +277,16 @@ json.dumps({
             waverec: wasmletsRecAvg,
           },
         },
-        pywaveletsWithinPython: {
-          timings: {
-            wavedec: pywaveletsWithinPythonDecAvg,
-            waverec: pywaveletsWithinPythonRecAvg,
-          },
-        },
         pywavelets: {
           timings: {
             wavedec: pywaveletsDecAvg,
             waverec: pywaveletsRecAvg,
+          },
+        },
+        pywaveletsWithMarshalling: {
+          timings: {
+            wavedec: pywaveletsWithMarshallingDecAvg,
+            waverec: pywaveletsWithMarshallingRecAvg,
           },
         },
         discreteWavelets: {
