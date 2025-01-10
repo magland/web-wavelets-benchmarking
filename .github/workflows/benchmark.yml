@@ -45,22 +45,26 @@ jobs:
       run: python plot_benchmark.py
 
     - name: Configure Git
+      if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
       run: |
         git config user.name "GitHub Actions Bot"
         git config user.email "actions@github.com"
 
     - name: Create fresh results branch
+      if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
       run: |
         git checkout --orphan benchmark-results
         git rm -rf .
         mkdir -p benchmark-results
 
     - name: Move benchmark files
+      if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
       run: |
         mv output/benchmark.json benchmark-results/
         mv output/benchmark.png benchmark-results/
 
     - name: Commit benchmark results
+      if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
