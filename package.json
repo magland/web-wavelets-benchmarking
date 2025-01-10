@@ -1,0 +1,21 @@
+{
+  "name": "wasmlets-benchmark",
+  "version": "1.0.0",
+  "description": "Benchmark comparison between wasmlets and pyodide",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/benchmark.js",
+    "benchmark": "npm run build && npm start"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/node": "^20.0.0",
+    "discrete-wavelets": "^5.0.15",
+    "pyodide": "^0.25.0",
+    "typescript": "^5.0.0",
+    "wasmlets": "^0.0.3"
+  }
+}
