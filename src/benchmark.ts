@@ -21,9 +21,11 @@ async function runBenchmarks() {
   );
 
   const prePyodide = performance.now();
-  const pyodide = await loadPyodide({packages: ["numpy", "pywavelets"]});
+  const pyodide = await loadPyodide({ packages: ["numpy", "pywavelets"] });
   const postPyodide = performance.now();
-  console.log(`Pyodide and packages initialized in ${postPyodide - prePyodide}ms`);
+  console.log(
+    `Pyodide and packages initialized in ${postPyodide - prePyodide}ms`
+  );
 
   // Benchmark parameters
   const sizes = [1e5, 1e6];
@@ -40,7 +42,13 @@ async function runBenchmarks() {
         waverec: number;
       };
     };
-    pyodide: {
+    pywaveletsWithinPython: {
+      timings: {
+        wavedec: number;
+        waverec: number;
+      };
+    };
+    pywavelets: {
       timings: {
         wavedec: number;
         waverec: number;
@@ -81,11 +89,11 @@ async function runBenchmarks() {
         data[i] = Math.sin(i / 10) + Math.random() * 0.1;
       }
 
+      //////////////////////////////////////////////////////////////////////////
+      // Wasmlets benchmark
       console.info(
         `Running wasmlets benchmarks for size ${size} and wavelet ${wavelet}`
       );
-      //////////////////////////////////////////////////////////////////////////
-      // Wavedec benchmark
       const startDec = performance.now();
       let numDecTrials = 0;
       let coeffs: any;
@@ -95,6 +103,9 @@ async function runBenchmarks() {
       }
       const endDec = performance.now();
       const wasmletsDecAvg = (endDec - startDec) / numDecTrials;
+      console.info(
+        `wavedec: ${wasmletsDecAvg}ms (${numDecTrials} trials)`
+      );
 
       const startRec = performance.now();
       let numRecTrials = 0;
@@ -106,16 +117,16 @@ async function runBenchmarks() {
       const endRec = performance.now();
       const wasmletsRecAvg = (endRec - startRec) / numRecTrials;
       console.info(
-        `wavedec avg time: ${wasmletsDecAvg}ms (${numDecTrials} trials)`
+        `wavedec: ${wasmletsDecAvg}ms (${numDecTrials} trials)`
       );
+      console.info("");
 
       //////////////////////////////////////////////////////////////////////////
-      // Pyodide benchmarks
+      // Pywavelets-within-python benchmarks
       console.info(
-        `Running Pyodide benchmarks for size ${size} and wavelet ${wavelet}`
+        `Running pywavelets-within-python benchmarks for size ${size} and wavelet ${wavelet}`
       );
 
-      // Transfer the data array directly to Python
       pyodide.globals.set("input_data", data);
 
       const pyodideResult = await pyodide.runPythonAsync(`
@@ -125,14 +136,13 @@ import time
 import json
 
 # Convert the transferred array to numpy array
-data = np.array(input_data)
 target_duration = ${targetDurationMs / 1000}  # Convert to seconds
 
 # Wavedec benchmark
 start = time.time()
 num_dec_trials = 0
 while time.time() - start < target_duration:
-    coeffs = pywt.wavedec(data, '${wavelet}')
+    coeffs = pywt.wavedec(input_data, '${wavelet}')
     num_dec_trials += 1
 end = time.time()
 wavedec_time_elapsed = (end - start) * 1000
@@ -149,24 +159,63 @@ waverec_time_elapsed = (end - start) * 1000
 waverec_avg_time = waverec_time_elapsed / num_rec_trials
 
 json.dumps({
-    'pyodideDecAvg': wavedec_avg_time,
-    'pyodideRecAvg': waverec_avg_time,
+    'pywaveletsWithinPythonDecAvg': wavedec_avg_time,
+    'pywaveletsWithinPythonRecAvg': waverec_avg_time,
     'numDecTrials': num_dec_trials,
     'numRecTrials': num_rec_trials
 })
         `);
       const {
-        pyodideDecAvg,
-        pyodideRecAvg,
+        pywaveletsWithinPythonDecAvg,
+        pywaveletsWithinPythonRecAvg,
         numDecTrials: pyNumDecTrials,
         numRecTrials: pyNumRecTrials,
       } = JSON.parse(pyodideResult);
       console.info(
-        `wavedec avg time: ${pyodideDecAvg}ms (${pyNumDecTrials} trials)`
+        `wavedec: ${pywaveletsWithinPythonDecAvg}ms (${pyNumDecTrials} trials)`
       );
       console.info(
-        `waverec avg time: ${pyodideRecAvg}ms (${pyNumRecTrials} trials)`
+        `waverec: ${pywaveletsWithinPythonRecAvg}ms (${pyNumRecTrials} trials)`
       );
+      console.info("");
+
+      //////////////////////////////////////////////////////////////////////////
+      // Pywavelets benchmarks
+      console.info(
+        `Running pywavelets benchmarks for size ${size} and wavelet ${wavelet}`
+      );
+      const startPywaveletsDec = performance.now();
+      let numPywaveletsDecTrials = 0;
+      let pywaveletsCoeffs: any;
+      while (performance.now() - startPywaveletsDec < targetDurationMs) {
+        pywaveletsCoeffs = await pywaveletsRoundTripDec(pyodide, data, wavelet);
+        numPywaveletsDecTrials++;
+      }
+      const endPywaveletsDec = performance.now();
+      const pywaveletsDecAvg =
+        (endPywaveletsDec - startPywaveletsDec) / numPywaveletsDecTrials;
+      console.info(
+        `wavedec: ${pywaveletsDecAvg}ms (${numPywaveletsDecTrials} trials)`
+      );
+
+      const startPywaveletsRec = performance.now();
+      let numPywaveletsRecTrials = 0;
+      let pywaveletsX;
+      while (performance.now() - startPywaveletsRec < targetDurationMs) {
+        pywaveletsX = await pywaveletsRoundTripRec(
+          pyodide,
+          pywaveletsCoeffs,
+          wavelet
+        );
+        numPywaveletsRecTrials++;
+      }
+      const endPywaveletsRec = performance.now();
+      const pywaveletsRecAvg =
+        (endPywaveletsRec - startPywaveletsRec) / numPywaveletsRecTrials;
+      console.info(
+        `waverec: ${pywaveletsRecAvg}ms (${numPywaveletsRecTrials} trials)`
+      );
+      console.info("");
 
       //////////////////////////////////////////////////////////////////////////
       // Discrete Wavelets benchmarks
@@ -191,6 +240,9 @@ json.dumps({
       const endDiscreteDec = performance.now();
       const discreteDecAvg =
         (endDiscreteDec - startDiscreteDec) / numDiscreteDecTrials;
+      console.info(
+        `wavedec: ${discreteDecAvg}ms (${numDiscreteDecTrials} trials)`
+      );
 
       // For some reason, discrete-wavelets waverec seems to hang
       // so disabling it
@@ -204,10 +256,13 @@ json.dumps({
         }
         const endDiscreteRec = performance.now();
         const discreteRecAvg = (endDiscreteRec - startDiscreteRec) / numDiscreteRecTrials;
-        console.info(`wavedec avg time: ${discreteDecAvg}ms (${numDiscreteDecTrials} trials)`);
-        console.info(`waverec avg time: ${discreteRecAvg}ms (${numDiscreteRecTrials} trials)`);
         */
+      const numDiscreteRecTrials = 0;
       const discreteRecAvg = undefined;
+      console.info(
+        `waverec: ${discreteRecAvg} ms (${numDiscreteRecTrials} trials)`
+      );
+      console.info("");
 
       const wasmletResult: BenchmarkResult = {
         size,
@@ -218,10 +273,16 @@ json.dumps({
             waverec: wasmletsRecAvg,
           },
         },
-        pyodide: {
+        pywaveletsWithinPython: {
           timings: {
-            wavedec: pyodideDecAvg,
-            waverec: pyodideRecAvg,
+            wavedec: pywaveletsWithinPythonDecAvg,
+            waverec: pywaveletsWithinPythonRecAvg,
+          },
+        },
+        pywavelets: {
+          timings: {
+            wavedec: pywaveletsDecAvg,
+            waverec: pywaveletsRecAvg,
           },
         },
         discreteWavelets: {
@@ -258,6 +319,40 @@ json.dumps({
     console.log(`Archived copy saved to ${archivePath}`);
   }
 }
+
+const pywaveletsRoundTripDec = async (
+  pyodide: any,
+  data: Float64Array,
+  wavelet: Wavelet
+) => {
+  pyodide.globals.set("input_data", data);
+
+  const pyodideResult = await pyodide.runPythonAsync(`
+import numpy as np
+import pywt
+
+coeffs = pywt.wavedec(input_data, '${wavelet}')
+coeffs
+        `);
+  return pyodideResult;
+};
+
+const pywaveletsRoundTripRec = async (
+  pyodide: any,
+  coeffs: any,
+  wavelet: Wavelet
+) => {
+  pyodide.globals.set("input_coeffs", coeffs);
+
+  const pyodideResult = await pyodide.runPythonAsync(`
+import numpy as np
+import pywt
+
+x = pywt.waverec(input_coeffs, '${wavelet}')
+x
+        `);
+  return pyodideResult;
+};
 
 // Run benchmarks
 runBenchmarks().catch(console.error);

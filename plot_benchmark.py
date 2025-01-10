@@ -16,9 +16,9 @@ wavelets = sorted(set(b['wavelet'] for b in data['benchmarks']))
 # Set up the plot
 fig, axes = plt.subplots(2, 1, figsize=(12, 10))
 if include_discrete_wavelets:
-    fig.suptitle('Wasmlets vs Pyodide vs Discrete-Wavelets Performance Comparison')
+    fig.suptitle('Wasmlets vs Pywavelets vs Discrete-Wavelets Performance Comparison')
 else:
-    fig.suptitle('Wasmlets vs Pyodide Performance Comparison')
+    fig.suptitle('Wasmlets vs Pywavelets Performance Comparison')
 
 # Width of each bar and positions of bar groups
 bar_width = 0.1  # Reduced width to fit more bars
@@ -36,18 +36,25 @@ for size_idx, size in enumerate(sizes):
     # Extract timing data for this size
     wasmlets_dec = [next(b['wasmlets']['timings']['wavedec'] for b in size_data if b['wavelet'] == w) for w in wavelets]
     wasmlets_rec = [next(b['wasmlets']['timings']['waverec'] for b in size_data if b['wavelet'] == w) for w in wavelets]
-    pyodide_dec = [next(b['pyodide']['timings']['wavedec'] for b in size_data if b['wavelet'] == w) for w in wavelets]
-    pyodide_rec = [next(b['pyodide']['timings']['waverec'] for b in size_data if b['wavelet'] == w) for w in wavelets]
+    pywavelets_wp_dec = [next(b['pywaveletsWithinPython']['timings']['wavedec'] for b in size_data if b['wavelet'] == w) for w in wavelets]
+    pywavelets_wp_rec = [next(b['pywaveletsWithinPython']['timings']['waverec'] for b in size_data if b['wavelet'] == w) for w in wavelets]
+    pywavelets_dec = [next(b['pywavelets']['timings']['wavedec'] for b in size_data if b['wavelet'] == w) for w in wavelets]
+    pywavelets_rec = [next(b['pywavelets']['timings']['waverec'] for b in size_data if b['wavelet'] == w) for w in wavelets]
     if include_discrete_wavelets:
         discrete_dec = [next(b['discreteWavelets']['timings']['wavedec'] for b in size_data if b['wavelet'] == w) for w in wavelets]
         # Handle undefined waverec timings for discrete-wavelets
         discrete_rec = [next((b['discreteWavelets']['timings'].get('waverec') or float('nan')) for b in size_data if b['wavelet'] == w) for w in wavelets]
+    else:
+        discrete_dec = [float('nan')] * len(wavelets)
+        discrete_rec = [float('nan')] * len(wavelets)
 
     # Create bars
     ax.bar(r1, wasmlets_dec, width=bar_width, label='Wasmlets Decomposition', color='skyblue')
     ax.bar(r2, wasmlets_rec, width=bar_width, label='Wasmlets Reconstruction', color='lightblue')
-    ax.bar(r3, pyodide_dec, width=bar_width, label='Pyodide Decomposition', color='orange')
-    ax.bar(r4, pyodide_rec, width=bar_width, label='Pyodide Reconstruction', color='wheat')
+    ax.bar(r3, pywavelets_wp_dec, width=bar_width, label='Pywavelets WP Decomposition', color='coral')
+    ax.bar(r4, pywavelets_wp_rec, width=bar_width, label='Pywavelets WP Reconstruction', color='salmon')
+    ax.bar(r3, pywavelets_dec, width=bar_width, label='Pywavelets Decomposition', color='orange')
+    ax.bar(r4, pywavelets_rec, width=bar_width, label='Pywavelets Reconstruction', color='wheat')
     if include_discrete_wavelets:
         ax.bar(r5, discrete_dec, width=bar_width, label='Discrete-Wavelets Decomposition', color='lightgreen')
         # Only plot reconstruction bars for discrete-wavelets if they're not all NaN
