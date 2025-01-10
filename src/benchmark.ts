@@ -103,23 +103,22 @@ async function runBenchmarks() {
       }
       const endDec = performance.now();
       const wasmletsDecAvg = (endDec - startDec) / numDecTrials;
-      console.info(
-        `wavedec: ${wasmletsDecAvg}ms (${numDecTrials} trials)`
-      );
+      console.info(`wavedec: ${wasmletsDecAvg}ms (${numDecTrials} trials)`);
 
       const startRec = performance.now();
       let numRecTrials = 0;
-      let x;
+      let x: any;
       while (performance.now() - startRec < targetDurationMs) {
         x = waverec(coeffs, wavelet, data.length);
         numRecTrials++;
       }
       const endRec = performance.now();
       const wasmletsRecAvg = (endRec - startRec) / numRecTrials;
-      console.info(
-        `wavedec: ${wasmletsDecAvg}ms (${numDecTrials} trials)`
-      );
+      console.info(`wavedec: ${wasmletsDecAvg}ms (${numDecTrials} trials)`);
       console.info("");
+      if (!arraysAreClose(data, x)) {
+        throw new Error("Round trip failed");
+      }
 
       //////////////////////////////////////////////////////////////////////////
       // Pywavelets-within-python benchmarks
@@ -136,13 +135,15 @@ import time
 import json
 
 # Convert the transferred array to numpy array
+data = np.array(input_data)
+
 target_duration = ${targetDurationMs / 1000}  # Convert to seconds
 
 # Wavedec benchmark
 start = time.time()
 num_dec_trials = 0
 while time.time() - start < target_duration:
-    coeffs = pywt.wavedec(input_data, '${wavelet}')
+    coeffs = pywt.wavedec(data, '${wavelet}')
     num_dec_trials += 1
 end = time.time()
 wavedec_time_elapsed = (end - start) * 1000
@@ -200,7 +201,7 @@ json.dumps({
 
       const startPywaveletsRec = performance.now();
       let numPywaveletsRecTrials = 0;
-      let pywaveletsX;
+      let pywaveletsX: any;
       while (performance.now() - startPywaveletsRec < targetDurationMs) {
         pywaveletsX = await pywaveletsRoundTripRec(
           pyodide,
@@ -216,6 +217,9 @@ json.dumps({
         `waverec: ${pywaveletsRecAvg}ms (${numPywaveletsRecTrials} trials)`
       );
       console.info("");
+      if (!arraysAreClose(pywaveletsX, x)) {
+        throw new Error("Round trip failed");
+      }
 
       //////////////////////////////////////////////////////////////////////////
       // Discrete Wavelets benchmarks
@@ -331,10 +335,13 @@ const pywaveletsRoundTripDec = async (
 import numpy as np
 import pywt
 
-coeffs = pywt.wavedec(input_data, '${wavelet}')
+data = np.array(input_data)
+
+coeffs = pywt.wavedec(data, '${wavelet}')
 coeffs
         `);
-  return pyodideResult;
+  const coeffs = pyodideResult.toJs();
+  return coeffs;
 };
 
 const pywaveletsRoundTripRec = async (
@@ -347,11 +354,29 @@ const pywaveletsRoundTripRec = async (
   const pyodideResult = await pyodide.runPythonAsync(`
 import numpy as np
 import pywt
+import pyodide
 
-x = pywt.waverec(input_coeffs, '${wavelet}')
+coeffs = input_coeffs.to_py()
+coeffs = [np.array(c) for c in coeffs]
+
+x = pywt.waverec(coeffs, '${wavelet}')
 x
         `);
   return pyodideResult;
+};
+
+const arraysAreClose = (a: Float64Array, b: Float64Array) => {
+  if (a.length !== b.length) {
+    return false;
+  }
+
+  for (let i = 0; i < a.length; i++) {
+    if (Math.abs(a[i] - b[i]) > 1e-6) {
+      return false;
+    }
+  }
+
+  return true;
 };
 
 // Run benchmarks
