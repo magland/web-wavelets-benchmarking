@@ -9,6 +9,8 @@ python plot_benchmark.py
 # take a look at the output directory
 ```
 
+<img alt="Latest results" src="https://raw.githubusercontent.com/magland/wasmlets-benchmark/refs/heads/benchmark-results/benchmark-results/benchmark.png" width=450 />
+
 Results are also pushed to the [benchmark-results](https://github.com/magland/wasmlets-benchmark/tree/benchmark-results) branch by a GitHub action.
 
 ## Notes

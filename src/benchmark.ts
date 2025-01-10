@@ -8,11 +8,16 @@ import DiscreteWavelets from 'discrete-wavelets';
 async function runBenchmarks() {
     // Initialize both libraries
     console.log('Initializing wasmlets...');
+    const preWasmlets = performance.now();
     await init();
+    const postWasmlets = performance.now();
+    console.log(`wasmlets initialized in ${postWasmlets - preWasmlets}ms`);
 
     console.log('Initializing Pyodide...');
-    const pyodide = await loadPyodide();
-    await pyodide.loadPackage(['numpy', 'pywavelets']);
+    const prePyodide = performance.now();
+    const pyodide = await loadPyodide({packages: ['numpy', 'pywavelets']});
+    const postPyodide = performance.now();
+    console.log(`Pyodide initialized in ${postPyodide - prePyodide}ms`);
 
     // Benchmark parameters
     const sizes = [1e5, 1e6];
@@ -187,8 +192,8 @@ json.dumps({
             },
             pyodide: {
                 timings: {
-                    wavedec: pyodideRecAvg,
-                    waverec: pyodideDecAvg
+                    wavedec: pyodideDecAvg,
+                    waverec: pyodideRecAvg
                 }
             },
             discreteWavelets: {
