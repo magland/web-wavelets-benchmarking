@@ -11,7 +11,8 @@ async function runBenchmarks() {
   const preWasmlets = performance.now();
   await init();
   const postWasmlets = performance.now();
-  console.log(`wasmlets initialized in ${postWasmlets - preWasmlets}ms`);
+  const wasmletsInitTime = postWasmlets - preWasmlets;
+  console.log(`wasmlets initialized in ${wasmletsInitTime}ms`);
 
   console.log("Initializing Pyodide...");
   // all this does is heat up the cache, so we can measure the time it takes to load the packages
@@ -23,9 +24,8 @@ async function runBenchmarks() {
   const prePyodide = performance.now();
   const pyodide = await loadPyodide({ packages: ["numpy", "pywavelets"] });
   const postPyodide = performance.now();
-  console.log(
-    `Pyodide and packages initialized in ${postPyodide - prePyodide}ms`
-  );
+  const pyodideInitTime = postPyodide - prePyodide;
+  console.log(`Pyodide and packages initialized in ${pyodideInitTime}ms`);
 
   // Benchmark parameters
   const sizes = [1e5, 1e6];
@@ -78,6 +78,10 @@ async function runBenchmarks() {
       targetDurationMs,
     },
     info: `Timings are in milliseconds. 'wavedec' and 'waverec' are the average times taken to run the respective functions over ${targetDurationMs}ms.`,
+    initializationTimings: {
+      wasmlets: wasmletsInitTime,
+      pyodide: pyodideInitTime,
+    },
     benchmarks: [] as BenchmarkResult[],
   };
 
