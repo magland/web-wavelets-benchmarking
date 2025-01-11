@@ -32,12 +32,20 @@ export async function runBenchmarks(o: {
   // all this does is heat up the cache, so we can measure the time it takes to load the packages
   // without internet speed affecting the results
   await loadPyodide({
-    indexURL: o.pyodideIndexUrl,
+    ...(
+      o.pyodideIndexUrl ? { // don't work well if indexUrl is undefined but provided
+        indexURL: o.pyodideIndexUrl,
+      } : {}
+    ),
+    packages: ["numpy", "pywavelets"],
   });
 
   const prePyodide = performance.now();
   const pyodide = await loadPyodide({
-    indexURL: o.pyodideIndexUrl,
+    ...(
+      o.pyodideIndexUrl ? {
+        indexURL: o.pyodideIndexUrl,
+    } : {}),
     packages: ["numpy", "pywavelets"],
   });
 
@@ -105,7 +113,7 @@ export async function runBenchmarks(o: {
       }
       const endRec = performance.now();
       const wasmletsRecAvg = (endRec - startRec) / numRecTrials;
-      console.info(`waverec: ${wasmletsDecAvg}ms (${numDecTrials} trials)`);
+      console.info(`waverec: ${wasmletsRecAvg}ms (${numRecTrials} trials)`);
       console.info("");
       if (!arraysAreClose(data, x)) {
         throw new Error("Round trip failed");
