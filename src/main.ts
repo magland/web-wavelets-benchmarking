@@ -12,7 +12,6 @@ async function main() {
   };
   const results = await runBenchmarks({
     systemInfo,
-    pyodideIndexUrl: "https://cdn.jsdelivr.net/pyodide/v0.27.0/full",
   });
 
   // Save results
