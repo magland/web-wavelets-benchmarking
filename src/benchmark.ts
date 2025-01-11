@@ -18,6 +18,7 @@ export async function runBenchmarks(o: {
   const sizes = o.sizes ?? [1e5, 1e6];
   const wavelets = o.wavelets ?? ["db2", "db4"];
   const targetDurationMs = o.targetDurationMs ?? 1000;
+  const pyodideIndexUrl = o.pyodideIndexUrl ?? undefined;
   const { setProgress, setCurrentTest, setPercentComplete } = o;
 
   // Initialize both libraries
@@ -29,25 +30,16 @@ export async function runBenchmarks(o: {
   console.log(`wasmlets initialized in ${wasmletsInitTime}ms`);
 
   console.log("Initializing Pyodide...");
+  // I don't know why, but we need to split the opts into separate cases depending on whether pyodideIndexUrl is set (in gh CI)
+  const loadPyodideOpts = pyodideIndexUrl
+    ? { indexURL: pyodideIndexUrl, packages: ["numpy", "pywavelets"] }
+    : { packages: ["numpy", "pywavelets"] };
   // all this does is heat up the cache, so we can measure the time it takes to load the packages
   // without internet speed affecting the results
-  await loadPyodide({
-    ...(
-      o.pyodideIndexUrl ? { // don't work well if indexUrl is undefined but provided
-        indexURL: o.pyodideIndexUrl,
-      } : {}
-    ),
-    packages: ["numpy", "pywavelets"],
-  });
+  await loadPyodide(loadPyodideOpts);
 
   const prePyodide = performance.now();
-  const pyodide = await loadPyodide({
-    ...(
-      o.pyodideIndexUrl ? {
-        indexURL: o.pyodideIndexUrl,
-    } : {}),
-    packages: ["numpy", "pywavelets"],
-  });
+  const pyodide = await loadPyodide(loadPyodideOpts);
 
   const postPyodide = performance.now();
   const pyodideInitTime = postPyodide - prePyodide;

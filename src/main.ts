@@ -12,6 +12,7 @@ async function main() {
   };
   const results = await runBenchmarks({
     systemInfo,
+    pyodideIndexUrl: undefined
   });
 
   // Save results
