@@ -1,5 +1,13 @@
 # Wasmlets vs Pyodide vs discrete-wavelets benchmark
 
+This project benchmarks the performance of the [wasmlets](https://github.com/flatironinstitute/wasmlets) library against other alternatives for the 1-dimensional discrete wavelet transform in the browser.
+
+You can either run the benchmark in node.js or in the browser.
+
+## Node.js Instructions
+
+```bash
+
 Instructions
 
 ```bash
@@ -12,6 +20,18 @@ python plot_benchmark.py
 <img alt="Latest results" src="https://raw.githubusercontent.com/magland/wasmlets-benchmark/refs/heads/benchmark-results/benchmark-results/benchmark.png" width=450 />
 
 Results are also pushed to the [benchmark-results](https://github.com/magland/wasmlets-benchmark/tree/benchmark-results) branch by a GitHub action.
+
+## Browser Instructions
+
+Visit the [benchmark page](https://magland.github.io/wasmlets-benchmark/).
+
+Or run in development mode:
+
+```bash
+cd gui
+yarn install
+yarn dev
+```
 
 ## Notes
 

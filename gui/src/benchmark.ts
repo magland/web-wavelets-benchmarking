@@ -239,10 +239,10 @@ json.dumps({
 
       const startDiscreteDec = performance.now();
       let numDiscreteDecTrials = 0;
-      let discreteCoeffs: any;
+      // let discreteCoeffs: any;
       while (performance.now() - startDiscreteDec < targetDurationMs) {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        discreteCoeffs = (DiscreteWavelets as any).wavedec(
+        (DiscreteWavelets as any).wavedec(
           regularArray,
           wavelet as any,
           "symmetric"
