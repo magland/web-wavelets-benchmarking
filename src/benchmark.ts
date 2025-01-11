@@ -1,13 +1,28 @@
-import { init, wavedec, waverec, type Wavelet } from "wasmlets";
-import { loadPyodide } from "pyodide";
-import * as fs from "fs/promises";
-import * as path from "path";
-import * as os from "os";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import DiscreteWavelets from "discrete-wavelets";
+import { loadPyodide, PyodideInterface } from "pyodide";
+import { init, wavedec, Wavelet, waverec } from "wasmlets";
+import { BenchmarkResult } from "./benchmarkTypes.js";
 
-async function runBenchmarks() {
+export async function runBenchmarks(o: {
+  systemInfo: any;
+  sizes?: number[];
+  wavelets?: string[];
+  targetDurationMs?: number;
+  setProgress?: (progress: string) => void;
+  setCurrentTest?: (test: string) => void;
+  setPercentComplete?: (percent: number) => void;
+  pyodideIndexUrl?: string;
+}) {
+  // Set defaults
+  const sizes = o.sizes ?? [1e5, 1e6];
+  const wavelets = o.wavelets ?? ["db2", "db4"];
+  const targetDurationMs = o.targetDurationMs ?? 1000;
+  const pyodideIndexUrl = o.pyodideIndexUrl ?? undefined;
+  const { setProgress, setCurrentTest, setPercentComplete } = o;
+
   // Initialize both libraries
-  console.log("Initializing wasmlets...");
+  setProgress?.("Initializing wasmlets...");
   const preWasmlets = performance.now();
   await init();
   const postWasmlets = performance.now();
@@ -15,60 +30,43 @@ async function runBenchmarks() {
   console.log(`wasmlets initialized in ${wasmletsInitTime}ms`);
 
   console.log("Initializing Pyodide...");
-  // all this does is heat up the cache, so we can measure the time it takes to load the packages
-  // without internet speed affecting the results
-  await loadPyodide().then((pyodide) =>
-    pyodide.loadPackage(["numpy", "pywavelets"])
-  );
 
-  const prePyodide = performance.now();
-  const pyodide = await loadPyodide({ packages: ["numpy", "pywavelets"] });
-  const postPyodide = performance.now();
-  const pyodideInitTime = postPyodide - prePyodide;
+  // note: had trouble getting this to work in the CI if I pass indexURL as a parameter, even if undefined!
+
+  // gh CI is being temperamental, so we need to split this into two distinct cases
+  let pyodide: PyodideInterface;
+  let pyodideInitTime: number;
+  if (pyodideIndexUrl) {
+    // in this case we are in the browser
+    console.info(`Using Pyodide indexURL: ${pyodideIndexUrl}`);
+    const prePyodide = performance.now();
+    pyodide = await loadPyodide({ indexURL: pyodideIndexUrl, packages: ["numpy", "pywavelets"] });
+    const postPyodide = performance.now();
+    pyodideInitTime = postPyodide - prePyodide;
+  }
+  else {
+    // we are not in the browser, and we can't use the indexURL
+    if (pyodideIndexUrl) {
+      throw new Error("pyodideIndexUrl is only supported in the browser");
+    }
+    // all this does is heat up the cache, so we can measure the time it takes to load the packages
+    // without internet speed affecting the results
+    await loadPyodide().then((pyodide) =>
+      pyodide.loadPackage(["numpy", "pywavelets"])
+    );
+    const prePyodide = performance.now();
+    pyodide = await loadPyodide({ packages: ["numpy", "pywavelets"] });
+    const postPyodide = performance.now();
+    pyodideInitTime = postPyodide - prePyodide;
+  }
   console.log(`Pyodide and packages initialized in ${pyodideInitTime}ms`);
 
-  // Benchmark parameters
-  const sizes = [1e5, 1e6];
-  const wavelets: Wavelet[] = ["db2", "db4"];
-  const targetDurationMs = 1000; // Run each benchmark for ~3 seconds
-
-  console.log("Running benchmarks...");
-  interface BenchmarkResult {
-    size: number;
-    wavelet: Wavelet;
-    wasmlets: {
-      timings: {
-        wavedec: number;
-        waverec: number;
-      };
-    };
-    pywavelets: {
-      timings: {
-        wavedec: number;
-        waverec: number;
-      };
-    };
-    pywaveletsWithMarshalling: {
-      timings: {
-        wavedec: number;
-        waverec: number;
-      };
-    };
-    discreteWavelets: {
-      timings: {
-        wavedec: number;
-        waverec?: number;
-      };
-    };
-  }
+  setProgress?.("Running benchmarks...");
 
   const results = {
     timestamp: new Date().toISOString(),
     systemInfo: {
-      hostname: os.hostname(),
-      os: process.platform,
-      arch: process.arch,
-      nodeVersion: process.version,
+      ...o.systemInfo,
       wasmlets: "0.0.3",
       pyodide: pyodide.version,
       discreteWavelets: "5.0.1",
@@ -77,16 +75,21 @@ async function runBenchmarks() {
       wavelets,
       targetDurationMs,
     },
-    info: `Timings are in milliseconds. 'wavedec' and 'waverec' are the average times taken to run the respective functions over ${targetDurationMs}ms.`,
     initializationTimings: {
       wasmlets: wasmletsInitTime,
       pyodide: pyodideInitTime,
     },
+    info: `Timings are in milliseconds. 'wavedec' and 'waverec' are the average times taken to run the respective functions over ${targetDurationMs}ms.`,
     benchmarks: [] as BenchmarkResult[],
   };
 
+  const totalTests = wavelets.length * sizes.length;
+  let completedTests = 0;
+
   for (const wavelet of wavelets) {
     for (const size of sizes) {
+      setCurrentTest?.(`Testing wavelet ${wavelet} with size ${size}`);
+      setPercentComplete?.(Math.round((completedTests / totalTests) * 100));
       // Generate test data
       const data = new Float64Array(size);
       for (let i = 0; i < size; i++) {
@@ -94,7 +97,7 @@ async function runBenchmarks() {
       }
 
       //////////////////////////////////////////////////////////////////////////
-      // Wasmlets benchmark
+      // Wavedec benchmark
       console.info(
         `Running wasmlets benchmarks for size ${size} and wavelet ${wavelet}`
       );
@@ -102,7 +105,7 @@ async function runBenchmarks() {
       let numDecTrials = 0;
       let coeffs: any;
       while (performance.now() - startDec < targetDurationMs) {
-        coeffs = wavedec(data, wavelet, "sym");
+        coeffs = wavedec(data, wavelet as Wavelet, "sym");
         numDecTrials++;
       }
       const endDec = performance.now();
@@ -113,12 +116,12 @@ async function runBenchmarks() {
       let numRecTrials = 0;
       let x: any;
       while (performance.now() - startRec < targetDurationMs) {
-        x = waverec(coeffs, wavelet, data.length);
+        x = waverec(coeffs, wavelet as Wavelet, data.length);
         numRecTrials++;
       }
       const endRec = performance.now();
       const wasmletsRecAvg = (endRec - startRec) / numRecTrials;
-      console.info(`wavedec: ${wasmletsDecAvg}ms (${numDecTrials} trials)`);
+      console.info(`waverec: ${wasmletsRecAvg}ms (${numRecTrials} trials)`);
       console.info("");
       if (!arraysAreClose(data, x)) {
         throw new Error("Round trip failed");
@@ -176,12 +179,8 @@ json.dumps({
         numDecTrials: pyNumDecTrials,
         numRecTrials: pyNumRecTrials,
       } = JSON.parse(pyodideResult);
-      console.info(
-        `wavedec: ${pywaveletsDecAvg}ms (${pyNumDecTrials} trials)`
-      );
-      console.info(
-        `waverec: ${pywaveletsRecAvg}ms (${pyNumRecTrials} trials)`
-      );
+      console.info(`wavedec: ${pywaveletsDecAvg}ms (${pyNumDecTrials} trials)`);
+      console.info(`waverec: ${pywaveletsRecAvg}ms (${pyNumRecTrials} trials)`);
       console.info("");
 
       //////////////////////////////////////////////////////////////////////////
@@ -192,13 +191,21 @@ json.dumps({
       const startPywaveletsWithMarshallingDec = performance.now();
       let numPywaveletsWithMarshallingDecTrials = 0;
       let pywaveletsWithMarshallingCoeffs: any;
-      while (performance.now() - startPywaveletsWithMarshallingDec < targetDurationMs) {
-        pywaveletsWithMarshallingCoeffs = await pywaveletsRoundTripDec(pyodide, data, wavelet);
+      while (
+        performance.now() - startPywaveletsWithMarshallingDec <
+        targetDurationMs
+      ) {
+        pywaveletsWithMarshallingCoeffs = await pywaveletsRoundTripDec(
+          pyodide,
+          data,
+          wavelet
+        );
         numPywaveletsWithMarshallingDecTrials++;
       }
       const endPywaveletsWithMarshallingDec = performance.now();
       const pywaveletsWithMarshallingDecAvg =
-        (endPywaveletsWithMarshallingDec - startPywaveletsWithMarshallingDec) / numPywaveletsWithMarshallingDecTrials;
+        (endPywaveletsWithMarshallingDec - startPywaveletsWithMarshallingDec) /
+        numPywaveletsWithMarshallingDecTrials;
       console.info(
         `wavedec: ${pywaveletsWithMarshallingDecAvg}ms (${numPywaveletsWithMarshallingDecTrials} trials)`
       );
@@ -206,7 +213,10 @@ json.dumps({
       const startPywaveletsWithMarshallingRec = performance.now();
       let numPywaveletsWithMarshallingRecTrials = 0;
       let pywaveletsWithMarshallingX: any;
-      while (performance.now() - startPywaveletsWithMarshallingRec < targetDurationMs) {
+      while (
+        performance.now() - startPywaveletsWithMarshallingRec <
+        targetDurationMs
+      ) {
         pywaveletsWithMarshallingX = await pywaveletsRoundTripRec(
           pyodide,
           pywaveletsWithMarshallingCoeffs,
@@ -216,7 +226,8 @@ json.dumps({
       }
       const endPywaveletsWithMarshallingRec = performance.now();
       const pywaveletsWithMarshallingRecAvg =
-        (endPywaveletsWithMarshallingRec - startPywaveletsWithMarshallingRec) / numPywaveletsWithMarshallingRecTrials;
+        (endPywaveletsWithMarshallingRec - startPywaveletsWithMarshallingRec) /
+        numPywaveletsWithMarshallingRecTrials;
       console.info(
         `waverec: ${pywaveletsWithMarshallingRecAvg}ms (${numPywaveletsWithMarshallingRecTrials} trials)`
       );
@@ -238,6 +249,7 @@ json.dumps({
       let numDiscreteDecTrials = 0;
       let discreteCoeffs: any;
       while (performance.now() - startDiscreteDec < targetDurationMs) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         discreteCoeffs = (DiscreteWavelets as any).wavedec(
           regularArray,
           wavelet as any,
@@ -302,36 +314,18 @@ json.dumps({
       };
 
       results.benchmarks.push(wasmletResult);
+      completedTests++;
+      setPercentComplete?.(Math.round((completedTests / totalTests) * 100));
     }
   }
 
-  // Save results
-  const resultsJson = JSON.stringify(results, null, 2);
-  console.log("\nResults:");
-  console.log(resultsJson);
-
-  // Save results
-  const outputDir = "output";
-  await fs.mkdir(outputDir, { recursive: true });
-  const mainOutputPath = path.join(outputDir, "benchmark.json");
-  await fs.writeFile(mainOutputPath, resultsJson);
-  console.log(`\nResults saved to ${mainOutputPath}`);
-
-  // If running in GitHub Actions, save archived copy
-  if (process.env.GITHUB_ACTIONS) {
-    const archiveDir = path.join("benchmark-results", "archive");
-    await fs.mkdir(archiveDir, { recursive: true });
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const archivePath = path.join(archiveDir, `benchmark-${timestamp}.json`);
-    await fs.writeFile(archivePath, resultsJson);
-    console.log(`Archived copy saved to ${archivePath}`);
-  }
+  return results;
 }
 
 const pywaveletsRoundTripDec = async (
   pyodide: any,
   data: Float64Array,
-  wavelet: Wavelet
+  wavelet: string
 ) => {
   pyodide.globals.set("input_data", data);
 
@@ -352,7 +346,7 @@ coeffs
 const pywaveletsRoundTripRec = async (
   pyodide: any,
   coeffs: any,
-  wavelet: Wavelet
+  wavelet: string
 ) => {
   pyodide.globals.set("input_coeffs", coeffs);
 
@@ -384,6 +378,3 @@ const arraysAreClose = (a: Float64Array, b: Float64Array) => {
 
   return true;
 };
-
-// Run benchmarks
-runBenchmarks().catch(console.error);
