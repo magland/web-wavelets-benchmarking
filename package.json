@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/benchmark.js",
+    "start": "node dist/main.js",
     "benchmark": "npm run build && npm start"
   },
   "keywords": [],
