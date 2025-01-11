@@ -8,10 +8,11 @@ async function main() {
     hostname: os.hostname(),
     os: process.platform,
     arch: process.arch,
-    nodeVersion: process.version
-  }
+    nodeVersion: process.version,
+  };
   const results = await runBenchmarks({
-    systemInfo
+    systemInfo,
+    pyodideIndexUrl: "https://cdn.jsdelivr.net/pyodide/v0.27.0/full",
   });
 
   // Save results
