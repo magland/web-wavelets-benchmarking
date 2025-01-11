@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import DiscreteWavelets from "discrete-wavelets";
-import { loadPyodide } from "pyodide";
+import { loadPyodide, PyodideInterface } from "pyodide";
 import { init, wavedec, Wavelet, waverec } from "wasmlets";
 import { BenchmarkResult } from "./benchmarkTypes.js";
 
@@ -18,6 +18,7 @@ export async function runBenchmarks(o: {
   const sizes = o.sizes ?? [1e5, 1e6];
   const wavelets = o.wavelets ?? ["db2", "db4"];
   const targetDurationMs = o.targetDurationMs ?? 1000;
+  const pyodideIndexUrl = o.pyodideIndexUrl ?? undefined;
   const { setProgress, setCurrentTest, setPercentComplete } = o;
 
   // Initialize both libraries
@@ -29,28 +30,35 @@ export async function runBenchmarks(o: {
   console.log(`wasmlets initialized in ${wasmletsInitTime}ms`);
 
   console.log("Initializing Pyodide...");
-  // all this does is heat up the cache, so we can measure the time it takes to load the packages
-  // without internet speed affecting the results
-  await loadPyodide({
-    ...(
-      o.pyodideIndexUrl ? { // don't work well if indexUrl is undefined but provided
-        indexURL: o.pyodideIndexUrl,
-      } : {}
-    ),
-    packages: ["numpy", "pywavelets"],
-  });
 
-  const prePyodide = performance.now();
-  const pyodide = await loadPyodide({
-    ...(
-      o.pyodideIndexUrl ? {
-        indexURL: o.pyodideIndexUrl,
-    } : {}),
-    packages: ["numpy", "pywavelets"],
-  });
+  // note: had trouble getting this to work in the CI if I pass indexURL as a parameter, even if undefined!
 
-  const postPyodide = performance.now();
-  const pyodideInitTime = postPyodide - prePyodide;
+  // gh CI is being temperamental, so we need to split this into two distinct cases
+  let pyodide: PyodideInterface;
+  let pyodideInitTime: number;
+  if (pyodideIndexUrl) {
+    // in this case we are in the browser
+    console.info(`Using Pyodide indexURL: ${pyodideIndexUrl}`);
+    const prePyodide = performance.now();
+    pyodide = await loadPyodide({ indexURL: pyodideIndexUrl, packages: ["numpy", "pywavelets"] });
+    const postPyodide = performance.now();
+    pyodideInitTime = postPyodide - prePyodide;
+  }
+  else {
+    // we are not in the browser, and we can't use the indexURL
+    if (pyodideIndexUrl) {
+      throw new Error("pyodideIndexUrl is only supported in the browser");
+    }
+    // all this does is heat up the cache, so we can measure the time it takes to load the packages
+    // without internet speed affecting the results
+    await loadPyodide().then((pyodide) =>
+      pyodide.loadPackage(["numpy", "pywavelets"])
+    );
+    const prePyodide = performance.now();
+    pyodide = await loadPyodide({ packages: ["numpy", "pywavelets"] });
+    const postPyodide = performance.now();
+    pyodideInitTime = postPyodide - prePyodide;
+  }
   console.log(`Pyodide and packages initialized in ${pyodideInitTime}ms`);
 
   setProgress?.("Running benchmarks...");
