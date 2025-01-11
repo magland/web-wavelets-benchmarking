@@ -39,7 +39,7 @@ jobs:
         pip install matplotlib numpy
 
     - name: Run benchmarks
-      run: node dist/benchmark.js
+      run: node dist/main.js
 
     - name: Generate plot
       run: python plot_benchmark.py
