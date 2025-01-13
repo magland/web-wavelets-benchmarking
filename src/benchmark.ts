@@ -35,7 +35,7 @@ export async function runBenchmarks(o: {
     ...(
       o.pyodideIndexUrl ? { // don't work well if indexUrl is undefined but provided
         indexURL: o.pyodideIndexUrl,
-      } : {}
+      } : undefined
     ),
     packages: ["numpy", "pywavelets"],
   });
@@ -45,7 +45,7 @@ export async function runBenchmarks(o: {
     ...(
       o.pyodideIndexUrl ? {
         indexURL: o.pyodideIndexUrl,
-    } : {}),
+    } : undefined),
     packages: ["numpy", "pywavelets"],
   });
 
