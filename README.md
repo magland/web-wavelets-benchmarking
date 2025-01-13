@@ -39,18 +39,21 @@ yarn dev
 
 ## Notes
 
-Compares three 1-dimensional discrete wavelet transform implementations:
+Compares the following 1-dimensional discrete wavelet transform implementations in both Node.js and the browser:
 - wasmlets (WebAssembly)
-- PyWavelets (via Pyodide)
+- PyWavelets (Pyodide)
+- PyWavelets with marshalling (Pyodide)
 - discrete-wavelets (JavaScript)
 
 Tests both decomposition (wavedec) and reconstruction (waverec) operations using db2/db4 wavelets on arrays of size 100k and 1M elements. Each operation runs for 1000ms to get stable averages.
 
 Results show relative performance between implementations, with discrete-wavelets excluded from plots due to significantly slower performance.
 
+While compute times between wasmlets and non-marshalling PyWavelets are similar, the PyWavelets implementation requires loading the resource-intensive pyodide environment, adding up to several seconds of initialization overhead.
+
 For the PyWavelets/Pyodide implementation, two variants are tested:
-- Regular pywavelets: Data stays in Python's memory space between trials
-- pywavelets-with-marshalling: Data is explicitly marshalled (converted) between JavaScript and Python at each trial using Pyodide's to_py() and toJs() methods. This additional data conversion affects performance but may be necessary in scenarios where data needs to move between JavaScript and Python contexts as part of each wavelet operation.
+- Regular PyWavelets: Data stays in Python's memory space between trials
+- PyWavelets with marshalling: Data is explicitly marshalled (converted) between JavaScript and Python at each trial using Pyodide's to_py() and toJs() methods. This additional data conversion affects performance but may be necessary in scenarios where data needs to move between JavaScript and Python contexts as part of each wavelet operation.
 
 The benchmark.ts file is maintained as identical copies in both src/benchmark.ts and gui/src/benchmark.ts. Rather than attempting to share a single file between the Node.js and browser environments (which would require complex build configuration due to different TypeScript environments), we maintain synchronization through two utility scripts:
 - gui/devel/check_benchmark_files.sh: Verifies that the files are identical between src/ and gui/src/
