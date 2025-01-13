@@ -28,26 +28,19 @@ export async function runBenchmarks(o: {
   const wasmletsInitTime = postWasmlets - preWasmlets;
   console.log(`wasmlets initialized in ${wasmletsInitTime}ms`);
 
-  console.log("Initializing Pyodide...");
+  setProgress?.("Initializing Pyodide...");
   // all this does is heat up the cache, so we can measure the time it takes to load the packages
   // without internet speed affecting the results
-  await loadPyodide({
-    ...(
-      o.pyodideIndexUrl ? { // don't work well if indexUrl is undefined but provided
-        indexURL: o.pyodideIndexUrl,
-      } : {}
-    ),
-    packages: ["numpy", "pywavelets"],
+  const pyodideWarmup = await loadPyodide({
+    indexURL: o.pyodideIndexUrl
   });
+  await pyodideWarmup.loadPackage(["numpy", "pywavelets"]);
 
   const prePyodide = performance.now();
   const pyodide = await loadPyodide({
-    ...(
-      o.pyodideIndexUrl ? {
-        indexURL: o.pyodideIndexUrl,
-    } : {}),
-    packages: ["numpy", "pywavelets"],
+    indexURL: o.pyodideIndexUrl
   });
+  await pyodide.loadPackage(["numpy", "pywavelets"]);
 
   const postPyodide = performance.now();
   const pyodideInitTime = postPyodide - prePyodide;

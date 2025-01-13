@@ -1,13 +1,35 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BenchmarkConfig, type BenchmarkSettings } from './components/BenchmarkConfig';
 import { BenchmarkRunner, type BenchmarkResult } from './components/BenchmarkRunner';
 import { ResultsTable } from './components/ResultsTable';
 import { BenchmarkPlot } from './components/BenchmarkPlot';
 
+interface StoredBenchmarkData {
+  config: BenchmarkSettings;
+  results: BenchmarkResult[];
+}
+
+const STORAGE_KEY = 'wasmlets-benchmark-data';
+
 function App() {
   const [isRunning, setIsRunning] = useState(false);
   const [config, setConfig] = useState<BenchmarkSettings | null>(null);
   const [results, setResults] = useState<BenchmarkResult[]>([]);
+
+  // Load stored data on component mount
+  useEffect(() => {
+    const storedData = localStorage.getItem(STORAGE_KEY);
+    if (storedData) {
+      try {
+        const data: StoredBenchmarkData = JSON.parse(storedData);
+        setConfig(data.config);
+        setResults(data.results);
+      } catch (error) {
+        console.error('Failed to parse stored benchmark data:', error);
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    }
+  }, []);
 
   const handleStartBenchmark = (settings: BenchmarkSettings) => {
     setConfig(settings);
@@ -17,6 +39,13 @@ function App() {
   const handleBenchmarkComplete = (benchmarkResults: BenchmarkResult[]) => {
     setResults(benchmarkResults);
     setIsRunning(false);
+
+    // Store the results and config
+    const dataToStore: StoredBenchmarkData = {
+      config: config!,
+      results: benchmarkResults
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToStore));
   };
 
   return (
@@ -46,6 +75,7 @@ function App() {
                 onClick={() => {
                   setResults([]);
                   setConfig(null);
+                  localStorage.removeItem(STORAGE_KEY);
                 }}
                 className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               >
