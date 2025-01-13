@@ -6,8 +6,8 @@ import { BenchmarkResult } from "./benchmarkTypes.js";
 
 function formatMarkdownTable(results: BenchmarkResult[]) {
   // Headers
-  let md = '| Size | Wavelet | Wasmlets (dec/rec) | PyWavelets (dec/rec) | PyWavelets+Marshal (dec/rec) | DiscreteWavelets (dec/rec) |\n';
-  md += '|------|---------|-------------------|-------------------|--------------------------|------------------------|\n';
+  let md = '| Size | Wavelet | Wasmlets (dec / rec ms) | PyWavelets (dec / rec ms) | PyWavelets+Marshal (dec / rec ms) | DiscreteWavelets (dec / rec ms) |\n';
+  md += '|------|---------|---------------------|---------------------|----------------------------|---------------------------|\n';
 
   // Sort results by size then wavelet
   const sortedResults = [...results].sort((a, b) => {
@@ -21,7 +21,7 @@ function formatMarkdownTable(results: BenchmarkResult[]) {
       if (dec === undefined) return 'N/A';
       const decStr = dec.toFixed(2);
       const recStr = rec === undefined ? 'N/A' : rec.toFixed(2);
-      return `${decStr}/${recStr}`;
+      return `${decStr} / ${recStr}`;
     };
 
     md += `| ${result.size} | ${result.wavelet} | `;
