@@ -1,6 +1,6 @@
 # Wasmlets vs Pyodide vs discrete-wavelets benchmark
 
-This project benchmarks the performance of the [wasmlets](https://github.com/flatironinstitute/wasmlets) library against other alternatives for the 1-dimensional discrete wavelet transform in the browser.
+This project benchmarks the performance of the [wasmlets](https://github.com/flatironinstitute/wasmlets) library (which uses [wavelib](https://github.com/rafat/wavelib)) against other alternatives for the 1-dimensional discrete wavelet transform in the browser.
 
 You can either run the benchmark in node.js or in the browser.
 
@@ -40,7 +40,7 @@ yarn dev
 ## Notes
 
 Compares the following 1-dimensional discrete wavelet transform implementations in both Node.js and the browser:
-- wasmlets (WebAssembly)
+- wasmlets/wavelib (WebAssembly)
 - PyWavelets (Pyodide)
 - PyWavelets with marshalling (Pyodide)
 - discrete-wavelets (JavaScript)
@@ -49,7 +49,7 @@ Tests both decomposition (wavedec) and reconstruction (waverec) operations using
 
 Results show relative performance between implementations, with discrete-wavelets excluded from plots due to significantly slower performance.
 
-While compute times between wasmlets and non-marshalling PyWavelets are similar, the PyWavelets implementation requires loading the resource-intensive pyodide environment, adding up to several seconds of initialization overhead.
+While compute times between wasmlets/wavelib and non-marshalling PyWavelets are similar, the PyWavelets implementation requires loading the resource-intensive pyodide environment, adding up to several seconds of initialization overhead.
 
 For the PyWavelets/Pyodide implementation, two variants are tested:
 - Regular PyWavelets: Data stays in Python's memory space between trials
