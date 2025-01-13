@@ -48,6 +48,10 @@ Tests both decomposition (wavedec) and reconstruction (waverec) operations using
 
 Results show relative performance between implementations, with discrete-wavelets excluded from plots due to significantly slower performance.
 
+For the PyWavelets/Pyodide implementation, two variants are tested:
+- Regular pywavelets: Data stays in Python's memory space between trials
+- pywavelets-with-marshalling: Data is explicitly marshalled (converted) between JavaScript and Python at each trial using Pyodide's to_py() and toJs() methods. This additional data conversion affects performance but may be necessary in scenarios where data needs to move between JavaScript and Python contexts as part of each wavelet operation.
+
 The benchmark.ts file is maintained as identical copies in both src/benchmark.ts and gui/src/benchmark.ts. Rather than attempting to share a single file between the Node.js and browser environments (which would require complex build configuration due to different TypeScript environments), we maintain synchronization through two utility scripts:
 - gui/devel/check_benchmark_files.sh: Verifies that the files are identical between src/ and gui/src/
 - gui/devel/sync_benchmark_files.sh: Synchronizes the files by copying the most recently modified version
