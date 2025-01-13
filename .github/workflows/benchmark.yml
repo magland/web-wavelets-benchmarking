@@ -62,6 +62,7 @@ jobs:
       run: |
         mv output/benchmark.json benchmark-results/
         mv output/benchmark.png benchmark-results/
+        mv output/benchmark.md benchmark-results/
 
     - name: Commit benchmark results
       if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
