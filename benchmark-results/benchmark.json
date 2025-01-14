@@ -1,0 +1,134 @@
+{
+  "timestamp": "2025-01-14T11:37:21.394Z",
+  "systemInfo": {
+    "hostname": "fv-az1913-517",
+    "os": "linux",
+    "arch": "x64",
+    "nodeVersion": "v18.20.5",
+    "wasmlets": "0.0.3",
+    "pyodide": "0.25.1",
+    "discreteWavelets": "5.0.1"
+  },
+  "configuration": {
+    "wavelets": [
+      "db2",
+      "db4"
+    ],
+    "targetDurationMs": 1000
+  },
+  "initializationTimings": {
+    "wasmlets": 6.085365000006277,
+    "pyodide": 3263.868360000022
+  },
+  "info": "Timings are in milliseconds. 'wavedec' and 'waverec' are the average times taken to run the respective functions over 1000ms.",
+  "benchmarks": [
+    {
+      "size": 100000,
+      "wavelet": "db2",
+      "wasmlets": {
+        "timings": {
+          "wavedec": 1.265985992405036,
+          "waverec": 0.804031024115771
+        }
+      },
+      "pywavelets": {
+        "timings": {
+          "wavedec": 1.2091898428053205,
+          "waverec": 1.1695906432748537
+        }
+      },
+      "pywaveletsWithMarshalling": {
+        "timings": {
+          "wavedec": 5.218593687499985,
+          "waverec": 5.034016809045119
+        }
+      },
+      "discreteWavelets": {
+        "timings": {
+          "wavedec": 160.22982014285768
+        }
+      }
+    },
+    {
+      "size": 1000000,
+      "wavelet": "db2",
+      "wasmlets": {
+        "timings": {
+          "wavedec": 13.063653181818792,
+          "waverec": 8.84307411403534
+        }
+      },
+      "pywavelets": {
+        "timings": {
+          "wavedec": 10.11111278726597,
+          "waverec": 9.82352799060298
+        }
+      },
+      "pywaveletsWithMarshalling": {
+        "timings": {
+          "wavedec": 19.94492323529409,
+          "waverec": 19.52176326923095
+        }
+      },
+      "discreteWavelets": {
+        "timings": {
+          "wavedec": 2009.6540769999847
+        }
+      }
+    },
+    {
+      "size": 100000,
+      "wavelet": "db4",
+      "wasmlets": {
+        "timings": {
+          "wavedec": 2.333163554778557,
+          "waverec": 1.2766434221939191
+        }
+      },
+      "pywavelets": {
+        "timings": {
+          "wavedec": 1.6339869281045751,
+          "waverec": 1.4178469228339263
+        }
+      },
+      "pywaveletsWithMarshalling": {
+        "timings": {
+          "wavedec": 4.987737661691508,
+          "waverec": 4.837811768115982
+        }
+      },
+      "discreteWavelets": {
+        "timings": {
+          "wavedec": 183.85421633333317
+        }
+      }
+    },
+    {
+      "size": 1000000,
+      "wavelet": "db4",
+      "wasmlets": {
+        "timings": {
+          "wavedec": 22.961168022727097,
+          "waverec": 14.840079764705425
+        }
+      },
+      "pywavelets": {
+        "timings": {
+          "wavedec": 14.970149566878133,
+          "waverec": 12.78481000586401
+        }
+      },
+      "pywaveletsWithMarshalling": {
+        "timings": {
+          "wavedec": 25.202950124999916,
+          "waverec": 22.809114840909555
+        }
+      },
+      "discreteWavelets": {
+        "timings": {
+          "wavedec": 2481.36039300001
+        }
+      }
+    }
+  ]
+}
