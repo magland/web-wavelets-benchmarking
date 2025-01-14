@@ -27,7 +27,7 @@ As noted below, discrete-wavelets (the pure JavaScript solution) is excluded fro
 
 ## Browser Instructions
 
-Visit the [benchmark page](https://magland.github.io/web-wavelets-benchmarking/).
+Visit the [benchmark page](https://flatironinstitute.github.io/web-wavelets-benchmarking/).
 
 Or run in development mode:
 
