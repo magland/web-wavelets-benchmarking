@@ -9,7 +9,7 @@ interface StoredBenchmarkData {
   results: BenchmarkResult[];
 }
 
-const STORAGE_KEY = 'wasmlets-benchmark-data';
+const STORAGE_KEY = 'web-wavelets-benchmarking-data';
 
 function App() {
   const [isRunning, setIsRunning] = useState(false);

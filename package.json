@@ -1,5 +1,5 @@
 {
-  "name": "wasmlets-benchmark",
+  "name": "web-wavelets-benchmarking",
   "version": "1.0.0",
   "description": "Benchmark comparison between wasmlets and pyodide",
   "type": "module",

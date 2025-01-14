@@ -14,7 +14,7 @@ sizes = sorted(set(b['size'] for b in data['benchmarks']))
 wavelets = sorted(set(b['wavelet'] for b in data['benchmarks']))
 
 # Set up the plot
-fig, axes = plt.subplots(2, 1, figsize=(12, 10))
+fig, axes = plt.subplots(len(sizes) + 1, 1, figsize=(12, 10))
 if include_discrete_wavelets:
     fig.suptitle('Wasmlets vs Pywavelets vs Discrete-Wavelets Performance Comparison')
 else:
@@ -71,6 +71,22 @@ for size_idx, size in enumerate(sizes):
     if size == sizes[0]:
         ax.legend()
     ax.grid(True, alpha=0.3)
+
+
+ax = axes[-1]
+
+wasmlets_load = data['initializationTimings']['wasmlets']
+pywavelets_load = data['initializationTimings']['pyodide']
+ax.bar(0, wasmlets_load, width=bar_width, label='Wasmlets', color='skyblue')
+ax.bar(1, pywavelets_load, width=bar_width, label='Pyodide+Pywt', color='coral')
+ax.set_xticks([0, 1])
+ax.set_xticklabels(['Wasmlets', 'Pyodide + Pywavelets'])
+# log plot
+ax.set_yscale('log')
+ax.set_ylabel('Time (log ms)')
+ax.legend()
+ax.set_title('Startup')
+
 
 plt.tight_layout()
 plt.savefig('output/benchmark.png', dpi=300, bbox_inches='tight')

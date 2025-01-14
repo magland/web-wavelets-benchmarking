@@ -17,17 +17,17 @@ python plot_benchmark.py
 # take a look at the output directory
 ```
 
-Results are also pushed to the [benchmark-results](https://github.com/magland/wasmlets-benchmark/tree/benchmark-results) branch by a GitHub action. Here's a plot of the latest CI run:
+Results are also pushed to the [benchmark-results](https://github.com/magland/web-wavelets-benchmarking/tree/benchmark-results) branch by a GitHub action. Here's a plot of the latest CI run:
 
-<img alt="Latest results" src="https://raw.githubusercontent.com/magland/wasmlets-benchmark/refs/heads/benchmark-results/benchmark-results/benchmark.png" width=450 />
+<img alt="Latest results" src="https://raw.githubusercontent.com/magland/web-wavelets-benchmarking/refs/heads/benchmark-results/benchmark-results/benchmark.png" width=450 />
 
 As noted below, discrete-wavelets (the pure JavaScript solution) is excluded from the plot due to significantly slower performance.
 
-[Here is the table containing the latest results](https://github.com/magland/wasmlets-benchmark/blob/benchmark-results/benchmark-results/benchmark.md)
+[Here is the table containing the latest results](https://github.com/magland/web-wavelets-benchmarking/blob/benchmark-results/benchmark-results/benchmark.md)
 
 ## Browser Instructions
 
-Visit the [benchmark page](https://magland.github.io/wasmlets-benchmark/).
+Visit the [benchmark page](https://magland.github.io/web-wavelets-benchmarking/).
 
 Or run in development mode:
 
